@@ -175,17 +175,22 @@
     }
 
     body.mode-b .text-canvas {
-      color: #333333;
+      color: #d0d0d0;
+      padding: 8px 10px;
     }
 
     body.mode-b .input-area {
-      padding: 4px 8px !important;
-      border-top: 1px solid transparent !important; /* Hide separator line */
+      padding: 8px 10px !important;
+      border-top: none !important;
+      border: 1px solid #262626 !important; /* Heavily muted boxed prompt (~95%) */
+      border-radius: 6px;
+      margin: 0 10px 10px 10px;
     }
 
     body.mode-b .prompt-symbol {
       display: inline !important;
-      color: #2a2a2a !important; /* Extremely dim symbol */
+      color: #262626 !important; /* 95% muted prompt arrow */
+      font-weight: bold;
     }
 
     body.mode-b .chat-input {
@@ -193,19 +198,161 @@
       background-color: transparent !important;
       padding: 0 !important;
       margin: 0 !important;
-      min-height: 18px !important;
-      color: #2a2a2a !important; /* Extremely dim typed text */
-      caret-color: #2a2a2a !important; /* Extremely dim typing cursor */
+      min-height: 20px !important;
+      font-size: 13px !important;
+      color: #262626 !important; /* 95% muted input text */
+      caret-color: #262626 !important; /* 95% muted caret */
     }
 
     body.mode-b .text-line {
-      font-size: 9px !important;
-      color: #333333 !important;
+      font-size: 13px !important;
+      line-height: 1.5 !important;
+      color: #d0d0d0 !important; /* Agent output text */
       cursor: pointer;
     }
 
+    body.mode-b .text-line.revealed-original {
+      color: #000000 !important; /* Readable but subdued when showing real text */
+    }
+
+    body.mode-b .agent-bullet {
+      color: #4ec9b0; /* Claude Code action-bullet accent */
+    }
+
+    body.mode-b .text-line.fake-op {
+      color: #6a737d !important;
+      cursor: default;
+    }
+
+    body.mode-b .fake-op {
+      color: #e6e6e6 !important;
+    }
+
+    body.mode-b .fake-op .op-tool {
+      color: #2ee6c0;
+    }
+
+    body.mode-b .fake-op .op-dim {
+      color: #8b97a7;
+    }
+
+    body.mode-b .fake-op .op-fn {
+      color: #f2f2f2;
+    }
+
+    body.mode-b .fake-op .op-res {
+      color: #c4c8cf;
+    }
+
+    body.mode-b .fake-op .op-num {
+      color: #ffaf5e;
+    }
+
+    body.mode-b .fake-op .op-str {
+      color: #b5e890;
+    }
+
+    body.mode-b .fake-op .op-path {
+      color: #6cc0ff;
+    }
+
+    body.mode-b .fake-op .op-ok {
+      color: #2ee6c0;
+    }
+
+    body.mode-b .fake-op .op-warn {
+      color: #ffd36b;
+    }
+
+    /* Real messages live in their own quiet panel in B mode */
+    .real-feed {
+      display: none;
+    }
+
+    body.mode-b .real-feed {
+      display: block;
+      flex-shrink: 0;
+      max-height: 28vh;
+      overflow-y: auto;
+      padding: 4px 12px;
+      border-top: 1px solid #242424;
+    }
+
+    body.mode-b .real-feed .text-line {
+      font-size: 12px !important;
+      line-height: 1.45 !important;
+      color: #3d3d3d !important; /* Naturally muted real messages */
+      cursor: pointer;
+    }
+
+    body.mode-b .real-feed .text-line.sys {
+      color: #2f2f2f !important;
+    }
+
+    body.mode-b .real-feed .agent-bullet {
+      color: #3d4d48 !important; /* Muted bullet, no bright accent */
+    }
+
+    body.mode-b .real-feed .text-line.revealed-original {
+      color: #000000 !important;
+    }
+
+    .agent-spinner {
+      display: none;
+      flex-shrink: 0;
+      padding: 2px 12px 6px 12px;
+      font-family: inherit;
+      font-size: 12px;
+      color: #ff8a5c;
+      align-items: center;
+      gap: 10px;
+    }
+
+    body.mode-b .agent-spinner {
+      display: flex;
+    }
+
+    .agent-spinner .spinner-text {
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .agent-spinner .spin-dim {
+      color: #8b97a7;
+    }
+
+    .agent-spinner .spin-glyph {
+      display: inline-block;
+      width: 1ch;
+      text-align: center;
+    }
+
+    .agent-clear {
+      flex-shrink: 0;
+      font-family: inherit;
+      font-size: 11px;
+      color: #6a737d;
+      background-color: transparent;
+      border: 1px solid #3a3a3a;
+      border-radius: 4px;
+      padding: 1px 8px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .agent-clear:hover {
+      color: #d0d0d0;
+      border-color: #4d4d4d;
+    }
+
+    .agent-clear:active {
+      background-color: #2a2a2a;
+    }
+
     body.mode-b .text-line.sys {
-      color: #2b2b2b !important;
+      color: #6a737d !important; /* Dim sub-result connector lines */
     }
 
     body.mode-b .btn-send {
@@ -219,7 +366,8 @@
     }
 
     body.mode-b .chat-input::placeholder {
-      color: transparent !important; /* Hide completely in B mode */
+      color: #6a737d !important; /* Claude Code dim input hint */
+      opacity: 1 !important;
     }
   </style>
 </head>
@@ -234,6 +382,13 @@
   </div>
 
   <div class="text-canvas" id="viewport"></div>
+
+  <div class="real-feed" id="real-feed"></div>
+
+  <div class="agent-spinner" id="agent-spinner">
+    <span class="spinner-text" id="spinner-text"></span>
+    <button class="agent-clear" id="agent-clear" title="Clear conversation">/clear</button>
+  </div>
 
   <div class="input-area" id="input-area-container">
     <span class="prompt-symbol">&gt;</span>
@@ -271,8 +426,12 @@
       menuEdit: document.getElementById("menu-edit"),
       menuView: document.getElementById("menu-view"),
       viewport: document.getElementById("viewport"),
+      realFeed: document.getElementById("real-feed"),
       messageInput: document.getElementById("message-input"),
       inputAreaContainer: document.getElementById("input-area-container"),
+      agentSpinner: document.getElementById("agent-spinner"),
+      spinnerText: document.getElementById("spinner-text"),
+      agentClear: document.getElementById("agent-clear"),
       btnSend: document.getElementById("btn-send"),
       statusLeft: document.getElementById("status-left"),
       modeA: document.getElementById("mode-a"),
@@ -344,13 +503,21 @@
     }
 
     function displayTextForMode(text) {
-      if (session.activeMode === "B") return romanizeKorean(text);
+      if (session.activeMode === "B") {
+        // System "; ..." notices become Claude Code sub-result connectors
+        const connected = text.replace(/^;\s?/, "\u23bf  ");
+        return romanizeKorean(connected);
+      }
       return text;
     }
 
     function formatMessageLine(sender, text, timestamp) {
       const timeStr = formatTime(timestamp);
       const body = displayTextForMode(text);
+      if (session.activeMode === "B") {
+        // Disguise messages as Claude Code agent action lines
+        return `<span class="agent-bullet">\u23fa</span>  ${escapeHTML(body)}`;
+      }
       return `[${timeStr}] <${escapeHTML(sender)}> ${escapeHTML(body)}`;
     }
 
@@ -363,22 +530,39 @@
       document.body.classList.toggle("mode-b", session.activeMode === "B");
       dom.modeA.classList.toggle("active", session.activeMode === "A");
       dom.modeB.classList.toggle("active", session.activeMode === "B");
+      dom.messageInput.placeholder = session.activeMode === "B" ? "Try \"how do I...\"" : "Type a message here...";
       localStorage.setItem("lingochat_mode", session.activeMode);
+      updateViewMenu();
+      updateStatusBar();
     }
 
     function refreshAllLines() {
-      const lines = dom.viewport.querySelectorAll(".text-line");
-      lines.forEach((line) => {
+      // Drop any fake-op clutter from the main stage
+      dom.viewport.querySelectorAll(".fake-op").forEach((n) => n.remove());
+
+      const target = realContainer();
+      // Collect real lines from both containers (order preserved)
+      const realLines = [
+        ...dom.viewport.querySelectorAll('.text-line[data-real="1"]'),
+        ...dom.realFeed.querySelectorAll('.text-line[data-real="1"]')
+      ];
+
+      realLines.forEach((line) => {
         line.dataset.showingOriginal = "0"; // Reset toggle state
+        line.classList.remove("revealed-original");
         if (line.dataset.isSystem === "1") {
           line.textContent = displayTextForMode(line.dataset.text);
-          return;
+        } else {
+          line.innerHTML = formatMessageLine(
+            line.dataset.sender,
+            line.dataset.text,
+            Number(line.dataset.timestamp)
+          );
         }
-        line.innerHTML = formatMessageLine(
-          line.dataset.sender,
-          line.dataset.text,
-          Number(line.dataset.timestamp)
-        );
+        // Relocate into the mode-appropriate container
+        if (line.parentNode !== target) {
+          target.appendChild(line);
+        }
       });
     }
 
@@ -387,6 +571,115 @@
       session.activeMode = mode;
       applyModeToBody();
       refreshAllLines();
+      updateFakeAgentActivity();
+    }
+
+    /* ---- Fake agent activity (B mode camouflage) ---- */
+    const FILES = ["index.ts", "router.go", "main.py", "config.json", "utils.rs", "app.tsx", "db.sql", "server.js", "hooks.ts", "schema.prisma", "auth.service.ts", "cache.go", "worker.py", "models/user.rb", "lib/parser.c"];
+    const DIRS = ["src", "lib", "pkg", "internal", "app/api", "core", "services", "components"];
+    const VERBSEARCH = ["null pointer", "race condition", "auth middleware", "retry policy", "memory leak", "deadlock", "N+1 query", "stale cache"];
+    const SYMBOLS = ["handleRequest", "parseToken", "UserRepository", "connectPool", "encodePayload", "retryWithBackoff", "validateSchema", "flushBuffer"];
+    function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
+    function rint(min, max) { return min + Math.floor(Math.random() * (max - min + 1)); }
+    function hexId(n) { let s = ""; while (s.length < n) s += Math.floor(Math.random() * 16).toString(16); return s; }
+    function path() { return `${pick(DIRS)}/${pick(FILES)}`; }
+
+    function num(v) { return `<span class="op-num">${v}</span>`; }
+    function str(v) { return `<span class="op-str">${v}</span>`; }
+    function pth(v) { return `<span class="op-path">${v}</span>`; }
+
+    const FAKE = {
+      spinnerTimer: null,
+      opTimer: null,
+      frame: 0,
+      elapsed: 0,
+      tokens: 0,
+      glyphs: ["\u273b", "\u2733", "\u002a", "\u2736", "\u2738", "\u2739"],
+      verbs: ["Compiling", "Analyzing", "Thinking", "Synthesizing", "Resolving", "Indexing", "Pondering", "Reticulating", "Crunching", "Inferring", "Distilling", "Computing", "Optimizing", "Streaming", "Embedding"],
+      tools: [
+        () => `Read(${pth(path())}, ${num(rint(1, 80))}:${num(rint(81, 400))})`,
+        () => `Grep(${str('"' + pick(VERBSEARCH) + '"')}, glob=${str("**/*." + pick(["ts", "go", "py", "rs"]))})`,
+        () => `Bash(${str(pick(["npm run build", "go test ./...", "pytest -q", "cargo check", "git diff --stat"]))})`,
+        () => `Edit(${pth(path())}, ${num("+" + rint(1, 40))} ${num("-" + rint(0, 20))})`,
+        () => `Search(${str('"' + pick(SYMBOLS) + '"')})`,
+        () => `Fetch(${pth("https://api.local/v2/" + pick(["users", "index", "graph", "blobs"]))})`,
+        () => `Write(${pth(path())}, ${num(rint(2, 18))} hunks)`,
+        () => `Task(${str(pick(["explore", "refactor", "trace", "verify"]))} \u00b7 ${num(rint(2, 9))} steps)`,
+        () => `Embed(${num(rint(12, 240))} chunks \u00b7 ${num(hexId(7))})`
+      ],
+      results: [
+        () => `Read ${num(rint(40, 320))} lines`,
+        () => `Found ${num(rint(1, 14))} matches in ${num(rint(2, 30))} files`,
+        () => `Updated ${num(rint(1, 6))} files`,
+        () => `<span class="op-ok">\u2713</span> 0 errors, ${num(rint(0, 3))} warnings`,
+        () => `Done in ${num((Math.random() * 3 + 0.2).toFixed(2))}s`,
+        () => `Cached \u00b7 ${num(hexId(8))}`,
+        () => `Streamed ${num(rint(120, 4096))} tokens`,
+        () => `<span class="op-ok">\u2713</span> Compiled \u00b7 ${num(rint(8, 220))}ms`,
+        () => `Patch applied \u00b7 ${pth(path())}`,
+        () => `<span class="op-warn">\u26a0</span> ${num(rint(1, 4))} TODO left`,
+        () => `Vector store \u00b7 ${num(rint(1, 64))}MB`
+      ]
+    };
+
+    function renderSpinner() {
+      const g = FAKE.glyphs[Math.floor(FAKE.frame / 3) % FAKE.glyphs.length];
+      const verb = FAKE.verbs[Math.floor(FAKE.frame / 25) % FAKE.verbs.length];
+      const secs = (FAKE.elapsed / 10).toFixed(1);
+      dom.spinnerText.innerHTML = `<span class="spin-glyph">${g}</span> ${verb}\u2026 <span class="spin-dim">(esc to interrupt \u00b7 ${secs}s \u00b7 \u2191 ${FAKE.tokens.toLocaleString()} tokens)</span>`;
+    }
+
+    function injectFakeOp() {
+      const callDiv = document.createElement("div");
+      callDiv.className = "text-line fake-op";
+      callDiv.dataset.isFake = "1";
+      callDiv.innerHTML = `<span class="op-tool">\u23fa</span> <span class="op-fn">${pick(FAKE.tools)()}</span>`;
+      dom.viewport.appendChild(callDiv);
+
+      // 1-2 sub-result lines per call
+      const resultCount = rint(1, 2);
+      for (let r = 0; r < resultCount; r++) {
+        const resDiv = document.createElement("div");
+        resDiv.className = "text-line fake-op";
+        resDiv.dataset.isFake = "1";
+        resDiv.innerHTML = `  <span class="op-dim">\u23bf</span>  <span class="op-res">${pick(FAKE.results)()}</span>`;
+        dom.viewport.appendChild(resDiv);
+      }
+      scrollToBottom();
+
+      // Rolling buffer of fake clutter
+      const fakes = dom.viewport.querySelectorAll(".fake-op");
+      if (fakes.length > 110) {
+        const excess = fakes.length - 110;
+        for (let i = 0; i < excess; i++) if (fakes[i]) fakes[i].remove();
+      }
+    }
+
+    function injectFakeBurst() {
+      const burst = rint(1, 2);
+      for (let i = 0; i < burst; i++) injectFakeOp();
+    }
+
+    function updateFakeAgentActivity() {
+      clearInterval(FAKE.spinnerTimer);
+      clearInterval(FAKE.opTimer);
+      if (session.activeMode !== "B") {
+        dom.spinnerText.innerHTML = "";
+        return;
+      }
+      FAKE.spinnerTimer = setInterval(() => {
+        FAKE.frame++;
+        FAKE.elapsed++;
+        FAKE.tokens += Math.floor(Math.random() * 80) + 5;
+        renderSpinner();
+        if (FAKE.frame % 20 === 0) updateStatusBar();
+      }, 100);
+      FAKE.opTimer = setInterval(() => {
+        injectFakeBurst();
+      }, 1100);
+      // Seed a modest initial wall of activity
+      for (let i = 0; i < 4; i++) injectFakeOp();
+      renderSpinner();
     }
 
     function updateStatusBar() {
@@ -406,10 +699,20 @@
         usersStr = `${count} [${users.slice(0, 2).join(", ")}, +${count - 2}]`;
       }
 
+      if (session.activeMode === "B") {
+        const ctx = 23 + (FAKE.tokens % 60);
+        dom.statusLeft.textContent = `claude-sonnet-4.6 \u00b7 main* \u00b7 ${ctx}% context \u00b7 ~/proj`;
+        return;
+      }
+
       dom.statusLeft.textContent = `Ln ${ln}, Col ${col} | Users: ${usersStr} | UTF-8`;
     }
 
     function updateViewMenu() {
+      if (session.activeMode === "B") {
+        dom.menuView.textContent = "claude --resume";
+        return;
+      }
       dom.menuView.textContent = "View: " + session.connectionLabel;
     }
 
@@ -420,15 +723,23 @@
 
     function scrollToBottom() {
       dom.viewport.scrollTop = dom.viewport.scrollHeight;
+      if (session.activeMode === "B") {
+        dom.realFeed.scrollTop = dom.realFeed.scrollHeight;
+      }
+    }
+
+    function realContainer() {
+      return session.activeMode === "B" ? dom.realFeed : dom.viewport;
     }
 
     function appendSystemNotice(text) {
       const div = document.createElement("div");
       div.className = "text-line sys";
       div.dataset.isSystem = "1";
+      div.dataset.real = "1";
       div.dataset.text = text;
       div.textContent = displayTextForMode(text);
-      dom.viewport.appendChild(div);
+      realContainer().appendChild(div);
       scrollToBottom();
     }
 
@@ -437,6 +748,7 @@
       lineNode.className = "text-line";
       lineNode.id = "msg-node-" + msg.id;
       lineNode.dataset.msgId = msg.id;
+      lineNode.dataset.real = "1";
       lineNode.dataset.text = msg.text;
       lineNode.dataset.sender = msg.senderName;
       lineNode.dataset.timestamp = msg.timestamp;
@@ -452,13 +764,15 @@
         if (isShowingOriginal) {
           lineNode.innerHTML = formatMessageLine(lineNode.dataset.sender, lineNode.dataset.text, Number(lineNode.dataset.timestamp));
           lineNode.dataset.showingOriginal = "0";
+          lineNode.classList.remove("revealed-original");
         } else {
           lineNode.innerHTML = formatMessageLineRaw(lineNode.dataset.sender, lineNode.dataset.text, Number(lineNode.dataset.timestamp));
           lineNode.dataset.showingOriginal = "1";
+          lineNode.classList.add("revealed-original");
         }
       });
       
-      dom.viewport.appendChild(lineNode);
+      realContainer().appendChild(lineNode);
       scrollToBottom();
     }
 
@@ -473,6 +787,28 @@
     dom.btnSend.addEventListener("click", (e) => {
       e.stopPropagation();
       submitMessage();
+    });
+
+    function clearHistory() {
+      // Wipe all rendered lines: fake ops in the viewport AND real messages
+      dom.viewport.innerHTML = "";
+      dom.realFeed.innerHTML = "";
+      // Reset fake agent counters so it looks like a fresh session
+      FAKE.frame = 0;
+      FAKE.elapsed = 0;
+      FAKE.tokens = 0;
+      if (session.activeMode === "B") {
+        renderSpinner();
+        updateStatusBar();
+        // Immediately rebuild a fresh wall of fake activity
+        for (let i = 0; i < 4; i++) injectFakeOp();
+      }
+    }
+
+    dom.agentClear.addEventListener("click", (e) => {
+      e.stopPropagation();
+      clearHistory();
+      dom.messageInput.focus();
     });
 
     dom.menuEdit.addEventListener("click", () => {
@@ -516,6 +852,7 @@
     applyModeToBody();
     updateStatusBar();
     updateViewMenu();
+    updateFakeAgentActivity();
 
     window.addEventListener("load", () => {
       const params = new URLSearchParams(window.location.search);
@@ -529,6 +866,7 @@
       session.roomId = room;
       session.members = {};
       dom.viewport.innerHTML = "";
+      dom.realFeed.innerHTML = "";
       appendSystemNotice("; session " + room);
       connectRelay();
     });
