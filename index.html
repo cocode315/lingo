@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Untitled - Notepad</title>
+  <script src="mqtt.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      overflow: hidden;
+      height: 100%;
+    }
+
+    body {
+      font-family: Consolas, Menlo, "Courier New", monospace;
+      background-color: #ffffff;
+      color: #000000;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+      position: fixed; /* Pins body to prevent browser panning/bouncing when keyboard is open */
+      width: 100%;
+      top: 0;
+      left: 0;
+    }
+
+    .menu-bar {
+      background-color: #f0f0f0;
+      border-bottom: 1px solid #dfdfdf;
+      display: flex;
+      padding: 2px 8px;
+      font-size: 12px;
+      gap: 12px;
+      user-select: none;
+      flex-shrink: 0;
+    }
+
+    .menu-item {
+      cursor: default;
+      padding: 2px 4px;
+    }
+
+    .menu-item:active {
+      background-color: #e5e5e5;
+    }
+
+    .text-canvas {
+      flex: 1;
+      min-height: 0;
+      padding: 4px 8px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      background-color: #ffffff;
+    }
+
+    .text-line {
+      line-height: 1.2;
+      font-size: 16px;
+      color: #000000;
+      margin: 0;
+      padding: 0;
+      border: none;
+      background: none;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .text-line.sys {
+      color: #666666;
+    }
+
+    .input-area {
+      display: flex;
+      align-items: center;
+      padding: 6px 12px;
+      background-color: #ffffff;
+      flex-shrink: 0;
+      border-top: 1px solid #f0f0f0; /* Subtle separator line */
+    }
+
+    .prompt-symbol {
+      display: none; /* Hidden in A mode, visible in B mode */
+      font-size: 16px;
+      color: #777777;
+      margin-right: 6px;
+      user-select: none;
+      flex-shrink: 0;
+    }
+
+    .chat-input {
+      flex: 1;
+      border: 1px solid #cccccc; /* Clear 1px gray border in A mode */
+      border-radius: 2px;
+      outline: none;
+      font-family: inherit;
+      font-size: 16px;
+      background-color: #ffffff;
+      color: #000000;
+      padding: 6px 10px; /* Generous padding for easy mobile clicking and visibility */
+      margin: 0;
+      min-height: 28px;
+      -webkit-appearance: none; /* Prevents iOS default styling overrides */
+      appearance: none;
+    }
+
+    .chat-input:focus {
+      border-color: #0078d7; /* Soft blue focus indicator */
+    }
+
+    .btn-send {
+      font-family: inherit;
+      font-size: 14px;
+      background-color: #f0f0f0;
+      border: 1px solid #cccccc;
+      border-radius: 2px;
+      padding: 6px 12px;
+      margin-left: 8px;
+      cursor: pointer;
+      color: #000000;
+      min-height: 28px;
+      user-select: none;
+      flex-shrink: 0;
+    }
+
+    .btn-send:active {
+      background-color: #e5e5e5;
+      border-color: #ababab;
+    }
+
+    .status-bar {
+      background-color: #f0f0f0;
+      border-top: 1px solid #dfdfdf;
+      display: flex;
+      justify-content: space-between;
+      padding: 2px 8px;
+      font-size: 11px;
+      color: #555555;
+      user-select: none;
+      flex-shrink: 0;
+      gap: 8px;
+    }
+
+    .status-left {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .status-right {
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .mode-toggle {
+      cursor: pointer;
+      padding: 0 2px;
+    }
+
+    .mode-toggle.active {
+      font-weight: bold;
+      text-decoration: underline;
+    }
+
+    body.mode-b .text-canvas,
+    body.mode-b .chat-input {
+      color: #cbd5e1;
+    }
+
+    body.mode-b .input-area {
+      padding: 4px 8px !important;
+    }
+
+    body.mode-b .prompt-symbol {
+      display: inline !important;
+      color: #cbd5e1 !important;
+    }
+
+    body.mode-b .chat-input {
+      border: none !important;
+      background-color: transparent !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      min-height: 18px !important;
+    }
+
+    body.mode-b .text-line {
+      font-size: 9px !important;
+      color: #cbd5e1 !important;
+      cursor: pointer;
+    }
+
+    body.mode-b .text-line.sys {
+      color: #d1d5db !important;
+    }
+
+    body.mode-b .btn-send {
+      display: none !important; /* Hide completely in B mode */
+    }
+
+    /* Style the placeholder text */
+    .chat-input::placeholder {
+      color: #888888;
+      opacity: 0.6;
+    }
+
+    body.mode-b .chat-input::placeholder {
+      color: transparent !important; /* Hide completely in B mode */
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="menu-bar">
+    <span class="menu-item" id="menu-file" title="Copy invite link">File</span>
+    <span class="menu-item" id="menu-edit" title="Change nickname">Edit</span>
+    <span class="menu-item" id="menu-view">View</span>
+    <span class="menu-item" id="menu-help">Help</span>
+  </div>
+
+  <div class="text-canvas" id="viewport"></div>
+
+  <div class="input-area" id="input-area-container">
+    <span class="prompt-symbol">&gt;</span>
+    <input type="text" id="message-input" class="chat-input" placeholder="Type a message here..." maxlength="500" autocomplete="off" spellcheck="false">
+    <button class="btn-send" id="btn-send">Send</button>
+  </div>
+
+  <div class="status-bar">
+    <span class="status-left" id="status-left">Ln 1, Col 1 | UTF-8 | Windows (CRLF)</span>
+    <span class="status-right">
+      Mode:
+      <span class="mode-toggle active" id="mode-a">A</span>
+      |
+      <span class="mode-toggle" id="mode-b">B</span>
+    </span>
+  </div>
+
+  <script>
+    const MQTT_BROKER = "wss://broker.hivemq.com:8884/mqtt";
+
+    const session = {
+      clientId: "usr_" + Math.random().toString(36).substring(2, 11),
+      nickname: localStorage.getItem("lingochat_user_nick") || "User_" + Math.random().toString(36).substring(2, 6),
+      activeMode: localStorage.getItem("lingochat_mode") || "A",
+      roomId: "",
+      mqttClient: null,
+      members: {},
+      heartbeatInterval: null,
+      pruneInterval: null,
+      connectionLabel: "Connecting"
+    };
+
+    const dom = {
+      menuFile: document.getElementById("menu-file"),
+      menuEdit: document.getElementById("menu-edit"),
+      menuView: document.getElementById("menu-view"),
+      viewport: document.getElementById("viewport"),
+      messageInput: document.getElementById("message-input"),
+      inputAreaContainer: document.getElementById("input-area-container"),
+      btnSend: document.getElementById("btn-send"),
+      statusLeft: document.getElementById("status-left"),
+      modeA: document.getElementById("mode-a"),
+      modeB: document.getElementById("mode-b")
+    };
+
+    function romanizeKorean(text) {
+      const INITIALS = ['g', 'kk', 'n', 'd', 'tt', 'r', 'm', 'b', 'pp', 's', 'ss', '', 'j', 'jj', 'ch', 'k', 't', 'p', 'h'];
+      const MEDIALS = ['a', 'ae', 'ya', 'yae', 'eo', 'e', 'yeo', 'ye', 'o', 'wa', 'wae', 'oe', 'yo', 'u', 'wo', 'we', 'wi', 'yu', 'eu', 'ui', 'i'];
+      const STANDARD_FINALS = {
+        1: 'k', 2: 'k', 3: 'k', 4: 'n', 5: 'n', 6: 'n', 7: 't', 8: 'l', 9: 'k', 10: 'm',
+        11: 'p', 12: 'l', 13: 'l', 14: 'p', 15: 'l', 16: 'm', 17: 'p', 18: 'p', 19: 't',
+        20: 't', 21: 'ng', 22: 't', 23: 't', 24: 'k', 25: 't', 26: 'p', 27: 't'
+      };
+      const LIAISONS = {
+        1: 'g', 2: 'g', 3: 'gs', 4: 'n', 5: 'nj', 6: 'n', 7: 'd', 8: 'r', 9: 'lg', 10: 'lm',
+        11: 'lb', 12: 'ls', 13: 'lt', 14: 'lp', 15: 'l', 16: 'm', 17: 'b', 18: 'ps', 19: 's',
+        20: 'ss', 21: 'ng', 22: 'j', 23: 'ch', 24: 'k', 25: 't', 26: 'p', 27: 't'
+      };
+
+      let result = "";
+      for (let i = 0; i < text.length; i++) {
+        const char = text[i];
+        const code = char.charCodeAt(0);
+
+        if (code >= 0xAC00 && code <= 0xD7A3) {
+          const offset = code - 0xAC00;
+          const initialIdx = Math.floor(offset / 588);
+          const medialIdx = Math.floor((offset % 588) / 28);
+          const finalIdx = offset % 28;
+          const initial = INITIALS[initialIdx];
+          const medial = MEDIALS[medialIdx];
+          let final = "";
+
+          if (finalIdx > 0) {
+            const nextChar = text[i + 1];
+            const nextCode = nextChar ? nextChar.charCodeAt(0) : 0;
+            let followedByVowel = false;
+
+            if (nextCode >= 0xAC00 && nextCode <= 0xD7A3) {
+              const nextOffset = nextCode - 0xAC00;
+              const nextInitialIdx = Math.floor(nextOffset / 588);
+              if (nextInitialIdx === 11) followedByVowel = true;
+            }
+
+            final = followedByVowel ? (LIAISONS[finalIdx] || "") : (STANDARD_FINALS[finalIdx] || "");
+          }
+
+          result += initial + medial + final;
+        } else {
+          result += char;
+        }
+      }
+      return result;
+    }
+
+    function escapeHTML(str) {
+      if (!str) return "";
+      return str
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function formatTime(ts) {
+      return new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    }
+
+    function displayTextForMode(text) {
+      if (session.activeMode === "B") return romanizeKorean(text);
+      return text;
+    }
+
+    function formatMessageLine(sender, text, timestamp) {
+      const timeStr = formatTime(timestamp);
+      const body = displayTextForMode(text);
+      return `[${timeStr}] <${escapeHTML(sender)}> ${escapeHTML(body)}`;
+    }
+
+    function formatMessageLineRaw(sender, text, timestamp) {
+      const timeStr = formatTime(timestamp);
+      return `[${timeStr}] <${escapeHTML(sender)}> ${escapeHTML(text)}`;
+    }
+
+    function applyModeToBody() {
+      document.body.classList.toggle("mode-b", session.activeMode === "B");
+      dom.modeA.classList.toggle("active", session.activeMode === "A");
+      dom.modeB.classList.toggle("active", session.activeMode === "B");
+      localStorage.setItem("lingochat_mode", session.activeMode);
+    }
+
+    function refreshAllLines() {
+      const lines = dom.viewport.querySelectorAll(".text-line");
+      lines.forEach((line) => {
+        line.dataset.showingOriginal = "0"; // Reset toggle state
+        if (line.dataset.isSystem === "1") {
+          line.textContent = displayTextForMode(line.dataset.text);
+          return;
+        }
+        line.innerHTML = formatMessageLine(
+          line.dataset.sender,
+          line.dataset.text,
+          Number(line.dataset.timestamp)
+        );
+      });
+    }
+
+    function setMode(mode) {
+      if (session.activeMode === mode) return;
+      session.activeMode = mode;
+      applyModeToBody();
+      refreshAllLines();
+    }
+
+    function updateCursorStatus() {
+      const val = dom.messageInput.value;
+      const lines = val.split("\n");
+      const ln = lines.length;
+      const col = (lines[lines.length - 1] || "").length + 1;
+      dom.statusLeft.textContent = `Ln ${ln}, Col ${col} | UTF-8 | Windows (CRLF)`;
+    }
+
+    function updateViewMenu() {
+      dom.menuView.textContent = "View: " + session.connectionLabel;
+    }
+
+    function setConnectionLabel(label) {
+      session.connectionLabel = label;
+      updateViewMenu();
+    }
+
+    function scrollToBottom() {
+      dom.viewport.scrollTop = dom.viewport.scrollHeight;
+    }
+
+    function appendSystemNotice(text) {
+      const div = document.createElement("div");
+      div.className = "text-line sys";
+      div.dataset.isSystem = "1";
+      div.dataset.text = text;
+      div.textContent = displayTextForMode(text);
+      dom.viewport.appendChild(div);
+      scrollToBottom();
+    }
+
+    function renderMessageBubble(msg) {
+      const lineNode = document.createElement("div");
+      lineNode.className = "text-line";
+      lineNode.id = "msg-node-" + msg.id;
+      lineNode.dataset.msgId = msg.id;
+      lineNode.dataset.text = msg.text;
+      lineNode.dataset.sender = msg.senderName;
+      lineNode.dataset.timestamp = msg.timestamp;
+      lineNode.dataset.showingOriginal = "0";
+      
+      lineNode.innerHTML = formatMessageLine(msg.senderName, msg.text, msg.timestamp);
+      
+      // Click a line in B Mode to toggle showing its original content
+      lineNode.addEventListener("click", () => {
+        if (session.activeMode !== "B") return;
+        
+        const isShowingOriginal = lineNode.dataset.showingOriginal === "1";
+        if (isShowingOriginal) {
+          lineNode.innerHTML = formatMessageLine(lineNode.dataset.sender, lineNode.dataset.text, Number(lineNode.dataset.timestamp));
+          lineNode.dataset.showingOriginal = "0";
+        } else {
+          lineNode.innerHTML = formatMessageLineRaw(lineNode.dataset.sender, lineNode.dataset.text, Number(lineNode.dataset.timestamp));
+          lineNode.dataset.showingOriginal = "1";
+        }
+      });
+      
+      dom.viewport.appendChild(lineNode);
+      scrollToBottom();
+    }
+
+    dom.menuFile.addEventListener("click", () => {
+      navigator.clipboard.writeText(window.location.href).catch(() => {});
+    });
+
+    dom.inputAreaContainer.addEventListener("click", () => {
+      dom.messageInput.focus();
+    });
+
+    dom.btnSend.addEventListener("click", (e) => {
+      e.stopPropagation();
+      submitMessage();
+    });
+
+    dom.menuEdit.addEventListener("click", () => {
+      const next = prompt("Nickname:", session.nickname);
+      if (next === null) return;
+      const cleanVal = next.trim() || session.nickname;
+      session.nickname = cleanVal;
+      localStorage.setItem("lingochat_user_nick", cleanVal);
+      publishHeartbeat();
+    });
+
+    dom.modeA.addEventListener("click", () => setMode("A"));
+    dom.modeB.addEventListener("click", () => setMode("B"));
+
+    dom.messageInput.addEventListener("input", updateCursorStatus);
+    dom.messageInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        submitMessage();
+      }
+      updateCursorStatus();
+    });
+
+    // Handle Visual Viewport for mobile virtual keyboards to prevent cutting out the UI on top
+    if (window.visualViewport) {
+      const handleResize = () => {
+        document.body.style.height = window.visualViewport.height + "px";
+        scrollToBottom();
+      };
+      window.visualViewport.addEventListener("resize", handleResize);
+      window.visualViewport.addEventListener("scroll", handleResize);
+      window.addEventListener("load", handleResize);
+    }
+
+    // Prevent accidental browser elastic panning/bouncing on mobile
+    window.addEventListener("scroll", () => {
+      window.scrollTo(0, 0);
+    });
+
+    applyModeToBody();
+    updateCursorStatus();
+    updateViewMenu();
+
+    window.addEventListener("load", () => {
+      const params = new URLSearchParams(window.location.search);
+      let room = params.get("room");
+
+      if (!room) {
+        room = "room-" + Math.random().toString(36).substring(2, 7) + "-" + Math.random().toString(36).substring(2, 7);
+        window.history.replaceState({}, "", "?room=" + encodeURIComponent(room));
+      }
+
+      session.roomId = room;
+      dom.viewport.innerHTML = "";
+      appendSystemNotice("; session " + room);
+      connectRelay();
+    });
+
+    function connectRelay() {
+      setConnectionLabel("Connecting");
+
+      const connOpts = {
+        clientId: "lgc_client_" + Math.random().toString(36).substring(2, 10),
+        clean: true,
+        connectTimeout: 8000,
+        reconnectPeriod: 4000
+      };
+
+      try {
+        session.mqttClient = mqtt.connect(MQTT_BROKER, connOpts);
+
+        session.mqttClient.on("connect", () => {
+          setConnectionLabel("Connected");
+
+          const msgTopic = "lingochat/" + session.roomId + "/msg";
+          const presenceTopic = "lingochat/" + session.roomId + "/presence/+";
+
+          session.mqttClient.subscribe([msgTopic, presenceTopic], (err) => {
+            if (err) {
+              appendSystemNotice("; error " + err.message);
+            } else {
+              publishHeartbeat();
+              startPresenceTimers();
+            }
+          });
+        });
+
+        session.mqttClient.on("message", (topic, payload) => {
+          try {
+            const data = JSON.parse(payload.toString());
+            handleNetworkEvent(topic, data);
+          } catch (err) {
+            console.error("Payload error:", err);
+          }
+        });
+
+        session.mqttClient.on("close", () => {
+          setConnectionLabel("Disconnected");
+        });
+
+        session.mqttClient.on("reconnect", () => {
+          setConnectionLabel("Connecting");
+        });
+      } catch (err) {
+        appendSystemNotice("; error " + err.message);
+      }
+    }
+
+    function handleNetworkEvent(topic, data) {
+      const msgTopic = "lingochat/" + session.roomId + "/msg";
+      const presencePrefix = "lingochat/" + session.roomId + "/presence/";
+
+      if (topic === msgTopic) {
+        renderMessageBubble(data);
+      } else if (topic.startsWith(presencePrefix)) {
+        const remoteClientId = topic.replace(presencePrefix, "");
+        if (remoteClientId === session.clientId) return;
+
+        if (data.leaving) {
+          if (session.members[remoteClientId]) {
+            delete session.members[remoteClientId];
+          }
+        } else {
+          session.members[remoteClientId] = {
+            nickname: data.nickname,
+            lastSeen: Date.now()
+          };
+        }
+      }
+    }
+
+    function startPresenceTimers() {
+      clearInterval(session.heartbeatInterval);
+      clearInterval(session.pruneInterval);
+      session.heartbeatInterval = setInterval(publishHeartbeat, 5000);
+      session.pruneInterval = setInterval(() => {
+        const threshold = Date.now() - 12000;
+        for (const id in session.members) {
+          if (session.members[id].lastSeen < threshold) {
+            delete session.members[id];
+          }
+        }
+      }, 3000);
+    }
+
+    function publishHeartbeat(isLeaving = false) {
+      if (!session.mqttClient || !session.mqttClient.connected) return;
+
+      const presenceTopic = "lingochat/" + session.roomId + "/presence/" + session.clientId;
+      session.mqttClient.publish(presenceTopic, JSON.stringify({
+        nickname: session.nickname,
+        leaving: isLeaving,
+        timestamp: Date.now()
+      }), { qos: 0, retain: false });
+    }
+
+    function submitMessage() {
+      if (!session.mqttClient || !session.mqttClient.connected) {
+        appendSystemNotice("; offline");
+        return;
+      }
+
+      const txt = dom.messageInput.value.trim();
+      if (!txt) return;
+
+      const packet = {
+        id: "msg_" + Date.now() + "_" + Math.random().toString(36).substring(2, 6),
+        senderId: session.clientId,
+        senderName: session.nickname,
+        text: txt,
+        timestamp: Date.now()
+      };
+
+      session.mqttClient.publish(
+        "lingochat/" + session.roomId + "/msg",
+        JSON.stringify(packet),
+        { qos: 1 }
+      );
+
+      dom.messageInput.value = "";
+      updateCursorStatus();
+      dom.messageInput.focus();
+    }
+
+    window.addEventListener("beforeunload", () => {
+      publishHeartbeat(true);
+    });
+  </script>
+</body>
+
+</html>
