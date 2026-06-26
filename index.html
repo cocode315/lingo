@@ -174,18 +174,18 @@
       text-decoration: underline;
     }
 
-    body.mode-b .text-canvas,
-    body.mode-b .chat-input {
+    body.mode-b .text-canvas {
       color: #333333;
     }
 
     body.mode-b .input-area {
       padding: 4px 8px !important;
+      border-top: 1px solid transparent !important; /* Hide separator line */
     }
 
     body.mode-b .prompt-symbol {
       display: inline !important;
-      color: #333333 !important;
+      color: #2a2a2a !important; /* Extremely dim symbol */
     }
 
     body.mode-b .chat-input {
@@ -194,6 +194,8 @@
       padding: 0 !important;
       margin: 0 !important;
       min-height: 18px !important;
+      color: #2a2a2a !important; /* Extremely dim typed text */
+      caret-color: #2a2a2a !important; /* Extremely dim typing cursor */
     }
 
     body.mode-b .text-line {
@@ -387,12 +389,24 @@
       refreshAllLines();
     }
 
-    function updateCursorStatus() {
+    function updateStatusBar() {
       const val = dom.messageInput.value;
       const lines = val.split("\n");
       const ln = lines.length;
       const col = (lines[lines.length - 1] || "").length + 1;
-      dom.statusLeft.textContent = `Ln ${ln}, Col ${col} | UTF-8 | Windows (CRLF)`;
+
+      // Compact user list
+      const users = [session.nickname + " (Me)"];
+      for (const id in session.members) {
+        users.push(session.members[id].nickname);
+      }
+      const count = users.length;
+      let usersStr = `${count} [${users.slice(0, 3).join(", ")}]`;
+      if (count > 3) {
+        usersStr = `${count} [${users.slice(0, 2).join(", ")}, +${count - 2}]`;
+      }
+
+      dom.statusLeft.textContent = `Ln ${ln}, Col ${col} | Users: ${usersStr} | UTF-8`;
     }
 
     function updateViewMenu() {
@@ -468,18 +482,19 @@
       session.nickname = cleanVal;
       localStorage.setItem("lingochat_user_nick", cleanVal);
       publishHeartbeat();
+      updateStatusBar();
     });
 
     dom.modeA.addEventListener("click", () => setMode("A"));
     dom.modeB.addEventListener("click", () => setMode("B"));
 
-    dom.messageInput.addEventListener("input", updateCursorStatus);
+    dom.messageInput.addEventListener("input", updateStatusBar);
     dom.messageInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
         e.preventDefault();
         submitMessage();
       }
-      updateCursorStatus();
+      updateStatusBar();
     });
 
     // Handle Visual Viewport for mobile virtual keyboards to prevent cutting out the UI on top
@@ -499,7 +514,7 @@
     });
 
     applyModeToBody();
-    updateCursorStatus();
+    updateStatusBar();
     updateViewMenu();
 
     window.addEventListener("load", () => {
@@ -512,6 +527,7 @@
       }
 
       session.roomId = room;
+      session.members = {};
       dom.viewport.innerHTML = "";
       appendSystemNotice("; session " + room);
       connectRelay();
@@ -579,13 +595,27 @@
 
         if (data.leaving) {
           if (session.members[remoteClientId]) {
+            const oldNick = session.members[remoteClientId].nickname;
+            appendSystemNotice("; " + oldNick + " left");
             delete session.members[remoteClientId];
+            updateStatusBar();
           }
         } else {
+          const existed = !!session.members[remoteClientId];
+          const oldNick = existed ? session.members[remoteClientId].nickname : "";
+
           session.members[remoteClientId] = {
             nickname: data.nickname,
             lastSeen: Date.now()
           };
+
+          if (!existed) {
+            appendSystemNotice("; " + data.nickname + " joined");
+            updateStatusBar();
+          } else if (oldNick !== data.nickname) {
+            appendSystemNotice("; " + oldNick + " renamed to " + data.nickname);
+            updateStatusBar();
+          }
         }
       }
     }
@@ -596,10 +626,17 @@
       session.heartbeatInterval = setInterval(publishHeartbeat, 5000);
       session.pruneInterval = setInterval(() => {
         const threshold = Date.now() - 12000;
+        let changed = false;
         for (const id in session.members) {
           if (session.members[id].lastSeen < threshold) {
+            const prunedNick = session.members[id].nickname;
+            appendSystemNotice("; " + prunedNick + " timed out");
             delete session.members[id];
+            changed = true;
           }
+        }
+        if (changed) {
+          updateStatusBar();
         }
       }, 3000);
     }
@@ -639,7 +676,7 @@
       );
 
       dom.messageInput.value = "";
-      updateCursorStatus();
+      updateStatusBar();
       dom.messageInput.focus();
     }
 
