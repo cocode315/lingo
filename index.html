@@ -20,8 +20,8 @@
 
     body {
       font-family: Consolas, Menlo, "Courier New", monospace;
-      background-color: #ffffff;
-      color: #000000;
+      background-color: #1f1f1f;
+      color: #f3f3f3;
       display: flex;
       flex-direction: column;
       height: 100vh;
@@ -34,14 +34,15 @@
     }
 
     .menu-bar {
-      background-color: #f0f0f0;
-      border-bottom: 1px solid #dfdfdf;
+      background-color: #2c2c2c;
+      border-bottom: 1px solid #3c3c3c;
       display: flex;
       padding: 2px 8px;
       font-size: 12px;
       gap: 12px;
       user-select: none;
       flex-shrink: 0;
+      color: #e3e3e3;
     }
 
     .menu-item {
@@ -50,7 +51,7 @@
     }
 
     .menu-item:active {
-      background-color: #e5e5e5;
+      background-color: #3d3d3d;
     }
 
     .text-canvas {
@@ -62,13 +63,13 @@
       display: flex;
       flex-direction: column;
       gap: 0;
-      background-color: #ffffff;
+      background-color: #1f1f1f;
     }
 
     .text-line {
       line-height: 1.2;
       font-size: 16px;
-      color: #000000;
+      color: #f3f3f3;
       margin: 0;
       padding: 0;
       border: none;
@@ -78,22 +79,22 @@
     }
 
     .text-line.sys {
-      color: #666666;
+      color: #858585;
     }
 
     .input-area {
       display: flex;
       align-items: center;
       padding: 6px 12px;
-      background-color: #ffffff;
+      background-color: #1f1f1f;
       flex-shrink: 0;
-      border-top: 1px solid #f0f0f0; /* Subtle separator line */
+      border-top: 1px solid #2d2d2d; /* Subtle separator line */
     }
 
     .prompt-symbol {
       display: none; /* Hidden in A mode, visible in B mode */
       font-size: 16px;
-      color: #777777;
+      color: #858585;
       margin-right: 6px;
       user-select: none;
       flex-shrink: 0;
@@ -101,13 +102,13 @@
 
     .chat-input {
       flex: 1;
-      border: 1px solid #cccccc; /* Clear 1px gray border in A mode */
+      border: 1px solid #444444; /* Clear 1px dark border in A mode */
       border-radius: 2px;
       outline: none;
       font-family: inherit;
       font-size: 16px;
-      background-color: #ffffff;
-      color: #000000;
+      background-color: #2d2d2d;
+      color: #ffffff;
       padding: 6px 10px; /* Generous padding for easy mobile clicking and visibility */
       margin: 0;
       min-height: 28px;
@@ -122,31 +123,31 @@
     .btn-send {
       font-family: inherit;
       font-size: 14px;
-      background-color: #f0f0f0;
-      border: 1px solid #cccccc;
+      background-color: #2d2d2d;
+      border: 1px solid #444444;
       border-radius: 2px;
       padding: 6px 12px;
       margin-left: 8px;
       cursor: pointer;
-      color: #000000;
+      color: #ffffff;
       min-height: 28px;
       user-select: none;
       flex-shrink: 0;
     }
 
     .btn-send:active {
-      background-color: #e5e5e5;
-      border-color: #ababab;
+      background-color: #3d3d3d;
+      border-color: #555555;
     }
 
     .status-bar {
-      background-color: #f0f0f0;
-      border-top: 1px solid #dfdfdf;
+      background-color: #2c2c2c;
+      border-top: 1px solid #3c3c3c;
       display: flex;
       justify-content: space-between;
       padding: 2px 8px;
       font-size: 11px;
-      color: #555555;
+      color: #aaaaaa;
       user-select: none;
       flex-shrink: 0;
       gap: 8px;
@@ -175,7 +176,7 @@
 
     body.mode-b .text-canvas,
     body.mode-b .chat-input {
-      color: #cbd5e1;
+      color: #333333;
     }
 
     body.mode-b .input-area {
@@ -184,7 +185,7 @@
 
     body.mode-b .prompt-symbol {
       display: inline !important;
-      color: #cbd5e1 !important;
+      color: #333333 !important;
     }
 
     body.mode-b .chat-input {
@@ -197,12 +198,12 @@
 
     body.mode-b .text-line {
       font-size: 9px !important;
-      color: #cbd5e1 !important;
+      color: #333333 !important;
       cursor: pointer;
     }
 
     body.mode-b .text-line.sys {
-      color: #d1d5db !important;
+      color: #2b2b2b !important;
     }
 
     body.mode-b .btn-send {
@@ -212,7 +213,7 @@
     /* Style the placeholder text */
     .chat-input::placeholder {
       color: #888888;
-      opacity: 0.6;
+      opacity: 0.8;
     }
 
     body.mode-b .chat-input::placeholder {
